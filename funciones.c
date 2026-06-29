@@ -3,13 +3,11 @@
 #include <ctype.h>
 #include "funciones.h"
 
-/* Definicion de las constantes globales de limites */
 const float LIMITE_PM25_OMS = 15.0f;
 const float LIMITE_NO2_OMS  = 25.0f;
 const float LIMITE_SO2_OMS  = 40.0f;
 const float CO2_ALTO_PPM    = 1000.0f;
 
-/* Datos base simulados */
 const char *nombres_zonas_base[5] = {
     "El Camal", "Belisario", "Cotocollao", "Tumbaco", "Centro Historico"
 };
@@ -29,6 +27,125 @@ const float hist_pm25_base[5][30] = {
     {12,10,14,11, 9,11,13,15,11, 9,13,15,12,11,10,14,12,10,11,13,16,13,11,12,15,12,10,14,12,11},
     {32,28,36,31,25,29,33,38,30,26,35,37,31,29,27,35,32,28,30,34,37,33,29,32,35,31,28,34,32,29}
 };
+
+
+void mostrar_menu() {
+    printf("\n============================================\n");
+    printf("   SIGPCA - Sistema de Monitoreo del Aire\n");
+    printf("============================================\n");
+    printf(" 1. Registrar medicion en una zona\n");
+    printf(" 2. Ver niveles actuales y alertas\n");
+    printf(" 3. Ver prediccion a 24 horas\n");
+    printf(" 4. Ver promedio historico (30 dias) vs OMS\n");
+    printf(" 5. Generar recomendaciones\n");
+    printf(" 6. Exportar reporte a archivo\n");
+    printf(" 7. Agregar nueva zona de monitoreo\n");
+    printf(" 8. Eliminar zona de monitoreo\n");
+    printf(" 9. Salir\n");
+    printf("--------------------------------------------\n");
+}
+
+void inicializar_rutas(SistemaMonitoreo *s) {
+    if (s == NULL) return;
+    s->num_zonas    = NUM_ZONAS_BASE;
+    s->num_reportes = 0;
+    snprintf(s->archivo_historial, sizeof(s->archivo_historial), "historial.bin");
+    snprintf(s->archivo_reporte,   sizeof(s->archivo_reporte),   "reporte_SIGPCA.txt");
+}
+
+void opcion_ingresar_medicion(SistemaMonitoreo *s) {
+    int i;
+    int seleccion;
+    Zona *z;
+    char mensaje[300];
+
+    if (s == NULL) return;
+    if (s->num_zonas <= 0) {
+        printf("\nNo hay zonas registradas.\n");
+        return;
+    }
+
+    printf("\n--- Registrar medicion de contaminacion ---\n");
+    for (i = 0; i < s->num_zonas; i++) {
+        printf("  %d. %s  [Alerta actual: %s]\n", i + 1, s->zonas[i].nombre, texto_nivel(s->zonas[i].nivel_alerta));
+    }
+    printf("  0. Volver al menu\n");
+
+    seleccion = pedir_entero_rango("Seleccione la zona: ", 0, s->num_zonas);
+    if (seleccion == 0) return;
+
+    z = &s->zonas[seleccion - 1];
+    ingresar_medicion(z);
+    comparar_con_limites(z);
+    actualizar_predicciones(z);
+    actualizar_historial(z);
+
+    printf("\nMedicion registrada correctamente.\n");
+    mostrar_datos_zona(z);
+
+    if (z->nivel_alerta >= 1) {
+        generar_recomendaciones(z, mensaje, sizeof(mensaje));
+        printf("\n*** ATENCION - Nivel %s ***\n%s\n", texto_nivel(z->nivel_alerta), mensaje);
+    }
+}
+
+void opcion_ver_niveles(SistemaMonitoreo *s) {
+    if (s == NULL) return;
+    mostrar_resumen_zonas(s);
+    printf("\nReferencias OMS: PM2.5: %.0f | NO2: %.0f | SO2: %.0f | CO2 alto: %.0f\n", LIMITE_PM25_OMS, LIMITE_NO2_OMS, LIMITE_SO2_OMS, CO2_ALTO_PPM);
+}
+
+void opcion_prediccion(SistemaMonitoreo *s) {
+    int i;
+    Zona *z;
+    if (s == NULL || s->num_zonas <= 0) return;
+
+    printf("\n--- Prediccion a 24 horas ---\n");
+    for (i = 0; i < s->num_zonas; i++) {
+        z = &s->zonas[i];
+        actualizar_predicciones(z);
+        printf("ZONA %d: %s -> Pred. PM2.5: %.2f | NO2: %.2f | SO2: %.2f\n", z->id, z->nombre, z->prediccion_pm25_24h, z->prediccion_no2_24h, z->prediccion_so2_24h);
+    }
+}
+
+void opcion_historico_vs_oms(SistemaMonitoreo *s) {
+    int i;
+    Zona *z;
+    if (s == NULL || s->num_zonas <= 0) return;
+
+    printf("\n--- Historico vs Limites OMS ---\n");
+    for (i = 0; i < s->num_zonas; i++) {
+        z = &s->zonas[i];
+        printf("Zona %s: PM2.5 prom = %.2f (OMS: %.0f)\n", z->nombre, calcular_promedio_ponderado(z->historico_pm25, DIAS_HISTORICO), LIMITE_PM25_OMS);
+    }
+}
+
+void opcion_recomendaciones(SistemaMonitoreo *s) {
+    int i;
+    char mensaje[300];
+    Zona *z;
+    if (s == NULL || s->num_zonas <= 0) return;
+
+    printf("\n--- Recomendaciones ---\n");
+    for (i = 0; i < s->num_zonas; i++) {
+        z = &s->zonas[i];
+        generar_recomendaciones(z, mensaje, sizeof(mensaje));
+        printf("Zona %s [%s]: %s\n", z->nombre, texto_nivel(z->nivel_alerta), mensaje);
+    }
+}
+
+void opcion_exportar_reporte(SistemaMonitoreo *s) {
+    if (s != NULL) exportar_reporte(s);
+}
+
+void opcion_agregar_zona(SistemaMonitoreo *s) {
+    if (s != NULL) agregar_zona(s);
+}
+
+void opcion_eliminar_zona(SistemaMonitoreo *s) {
+    if (s != NULL) eliminar_zona(s);
+}
+
 
 void obtener_fecha_hora(char *fecha, int tf, char *hora, int th) {
     if (fecha != NULL && tf > 0) snprintf(fecha, tf, "%s", __DATE__);
@@ -132,7 +249,8 @@ int pedir_entero_rango(const char *mensaje, int minimo, int maximo) {
         fflush(stdout);
 
         if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
-            return minimo; /* Retorno seguro ante EOF */
+            clearerr(stdin);
+            return maximo;
         }
 
         if (sscanf(buffer, "%d", &valor) != 1) {
@@ -161,7 +279,8 @@ float pedir_flotante_rango(const char *mensaje, float minimo, float maximo) {
         fflush(stdout);
 
         if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
-            return minimo; /* Retorno seguro ante EOF */
+            clearerr(stdin);
+            return maximo;
         }
 
         if (sscanf(buffer, "%f", &valor) != 1) {
@@ -387,7 +506,7 @@ void actualizar_historial(Zona *z) {
 void agregar_zona(SistemaMonitoreo *s) {
     int i;
     Zona *z;
-    char nombre_nuevo[50]; /* MAX_NOMBRE_ZONA */
+    char nombre_nuevo[50]; 
 
     if (s == NULL) return;
 
@@ -532,11 +651,16 @@ void actualizar_predicciones(Zona *z) {
 
 void generar_recomendaciones(Zona *z, char *mensaje, int tam_mensaje) {
     if (z == NULL || mensaje == NULL || tam_mensaje <= 0) return;
+    
     if (z->nivel_alerta == 0) {
-        snprintf(mensaje, tam_mensaje, "Ningun contaminante supera los limites OMS. Mantener condiciones actuales.");
-        return;
+        snprintf(mensaje, tam_mensaje, "Ningun contaminante supera limites. Mantener condiciones actuales.");
+    } else if (z->nivel_alerta == 1) {
+        snprintf(mensaje, tam_mensaje, "PRECAUCION: Reduccion del trafico vehicular e incentivar transporte publico.");
+    } else if (z->nivel_alerta == 2) {
+        snprintf(mensaje, tam_mensaje, "ALERTA: Suspender actividades al aire libre y aplicar restricciones de movilidad.");
+    } else {
+        snprintf(mensaje, tam_mensaje, "PELIGRO: Cierre temporal de industrias y suspension de actividades. Alerta sanitaria.");
     }
-    snprintf(mensaje, tam_mensaje, "Se superaron limites seguros de polucion. Se recomiendan mascarillas y reducir flujo vehicular.");
 }
 
 void mostrar_resumen_zonas(SistemaMonitoreo *s) {
@@ -555,14 +679,29 @@ void mostrar_datos_zona(Zona *z) {
 
 void exportar_reporte(SistemaMonitoreo *s) {
     FILE *fp;
+    int i;
     char fecha[20], hora[10];
 
     if (s == NULL) return;
     fp = fopen(s->archivo_reporte, "a");
-    if (fp == NULL) return;
+    if (fp == NULL) {
+        printf("Error al abrir el archivo de reporte.\n");
+        return;
+    }
 
     obtener_fecha_hora(fecha, sizeof(fecha), hora, sizeof(hora));
-    fprintf(fp, "\n=== REPORTE %s %s ===\nZonas: %d\n", fecha, hora, s->num_zonas);
+    fprintf(fp, "\n=== REPORTE %s %s ===\nZonas monitoreadas: %d\n", fecha, hora, s->num_zonas);
+
+    for (i = 0; i < s->num_zonas; i++) {
+        fprintf(fp, "ZONA: %s [ID:%d]\n", s->zonas[i].nombre, s->zonas[i].id);
+        fprintf(fp, "  PM2.5: %.2f | NO2: %.2f | SO2: %.2f | CO2: %.2f\n", 
+                s->zonas[i].pm25_actual, s->zonas[i].no2_actual, s->zonas[i].so2_actual, s->zonas[i].co2_actual);
+        fprintf(fp, "  Pred. 24h -> PM2.5: %.2f | NO2: %.2f | SO2: %.2f\n",
+                s->zonas[i].prediccion_pm25_24h, s->zonas[i].prediccion_no2_24h, s->zonas[i].prediccion_so2_24h);
+        fprintf(fp, "  Nivel Alerta: %s\n", texto_nivel(s->zonas[i].nivel_alerta));
+        fprintf(fp, "----------------------------------------\n");
+    }
+
     fclose(fp);
-    printf("Reporte exportado.\n");
+    printf("Reporte exportado correctamente en '%s'.\n", s->archivo_reporte);
 }

@@ -1,10 +1,4 @@
-/* ============================================================
-   funciones.h
-   SIGPCA - Sistema Integral de Gestion y Prediccion de
-   Contaminacion del Aire en Zonas Urbanas
-   ============================================================ */
 
-/* Reemplazo de #define por enum para constantes enteras y tamanios */
 enum {
     NUM_ZONAS_MAX = 10,
     NUM_ZONAS_BASE = 5,
@@ -15,7 +9,6 @@ enum {
     MAX_TEXTO = 300
 };
 
-/* Constantes globales para reemplazar los #define de coma flotante */
 extern const float LIMITE_PM25_OMS;
 extern const float LIMITE_NO2_OMS;
 extern const float LIMITE_SO2_OMS;
@@ -23,7 +16,7 @@ extern const float CO2_ALTO_PPM;
 
 typedef struct {
     int   id;
-    char  nombre[50]; /* MAX_NOMBRE_ZONA */
+    char  nombre[50]; 
 
     float pm25_actual;
     float no2_actual;
@@ -34,7 +27,7 @@ typedef struct {
     float velocidad_viento;
     float humedad;
 
-    float historico_pm25[30]; /* DIAS_HISTORICO */
+    float historico_pm25[30]; 
     float historico_no2[30];
     float historico_so2[30];
     float historico_co2[30];
@@ -51,22 +44,21 @@ typedef struct {
     char  fecha[20];
     char  hora[10];
     int   zona_id;
-    float valores[4]; /* NUM_CONTAMINANTES */
+    float valores[4]; 
     float predicciones[4];
     int   alertas[4];
-    char  recomendacion[300]; /* MAX_TEXTO */
+    char  recomendacion[300]; 
 } Reporte;
 
 typedef struct {
-    Zona    zonas[10]; /* NUM_ZONAS_MAX */
+    Zona    zonas[10]; 
     int     num_zonas;
-    Reporte reportes[100]; /* MAX_REPORTES */
+    Reporte reportes[100];
     int     num_reportes;
     char    archivo_historial[100];
     char    archivo_reporte[100];
 } SistemaMonitoreo;
 
-/* Declaraciones de funciones sin usar (void) ni static */
 int   leer_linea(char *buffer, int size);
 int   pedir_entero_rango(const char *mensaje, int minimo, int maximo);
 float pedir_flotante_rango(const char *mensaje, float minimo, float maximo);
@@ -99,3 +91,14 @@ void validar_sistema(SistemaMonitoreo *s);
 
 void obtener_fecha_hora(char *fecha, int tf, char *hora, int th);
 const char *texto_nivel(int nivel);
+
+void mostrar_menu();
+void inicializar_rutas(SistemaMonitoreo *s);
+void opcion_ingresar_medicion(SistemaMonitoreo *s);
+void opcion_ver_niveles(SistemaMonitoreo *s);
+void opcion_prediccion(SistemaMonitoreo *s);
+void opcion_historico_vs_oms(SistemaMonitoreo *s);
+void opcion_recomendaciones(SistemaMonitoreo *s);
+void opcion_exportar_reporte(SistemaMonitoreo *s);
+void opcion_agregar_zona(SistemaMonitoreo *s);
+void opcion_eliminar_zona(SistemaMonitoreo *s);
