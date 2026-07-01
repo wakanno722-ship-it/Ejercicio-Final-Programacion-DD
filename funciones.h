@@ -32,6 +32,10 @@ typedef struct {
     float historico_so2[30];
     float historico_co2[30];
 
+    float historico_temp[30];
+    float historico_viento[30];
+    float historico_humedad[30];
+
     float prediccion_pm25_24h;
     float prediccion_no2_24h;
     float prediccion_so2_24h;
