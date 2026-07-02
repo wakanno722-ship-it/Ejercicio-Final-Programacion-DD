@@ -1,108 +1,116 @@
+#ifndef FUNCIONES_H
+#define FUNCIONES_H
 
-enum {
-    NUM_ZONAS_MAX = 10,
-    NUM_ZONAS_BASE = 5,
-    NUM_CONTAMINANTES = 4,
-    DIAS_HISTORICO = 30,
-    MAX_REPORTES = 100,
-    MAX_NOMBRE_ZONA = 50,
-    MAX_TEXTO = 300
-};
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <time.h>
+#include <math.h>
 
-extern const float LIMITE_PM25_OMS;
-extern const float LIMITE_NO2_OMS;
-extern const float LIMITE_SO2_OMS;
-extern const float CO2_ALTO_PPM;
+#define MAX_ZONAS        10
+#define MAX_MEDICIONES   500
+#define DIAS_HISTORICO   30
+
+#define LIMITE_PM25   15.0f
+#define LIMITE_NO2    25.0f
+#define LIMITE_SO2    40.0f
+#define LIMITE_CO2    1000.0f
+
+#define TEMP_MIN      5.0f
+#define TEMP_MAX      30.0f
+#define HUMEDAD_MIN   30.0f
+#define HUMEDAD_MAX   70.0f
+#define VIENTO_MIN    2.0f
+#define VIENTO_MAX    50.0f
+
+#define CAMPO_PM25   0
+#define CAMPO_NO2    1
+#define CAMPO_SO2    2
+#define CAMPO_CO2    3
+#define CAMPO_TEMP   4
+#define CAMPO_HUM    5
+#define CAMPO_VIENTO 6
 
 typedef struct {
-    int   id;
-    char  nombre[50]; 
-
-    float pm25_actual;
-    float no2_actual;
-    float so2_actual;
-    float co2_actual;
-
-    float temperatura;
-    float velocidad_viento;
-    float humedad;
-
-    float historico_pm25[30]; 
-    float historico_no2[30];
-    float historico_so2[30];
-    float historico_co2[30];
-
-    float historico_temp[30];
-    float historico_viento[30];
-    float historico_humedad[30];
-
-    float prediccion_pm25_24h;
-    float prediccion_no2_24h;
-    float prediccion_so2_24h;
-    float prediccion_co2_24h;
-
-    int nivel_alerta;
+    int  id;
+    char nombre[50];
 } Zona;
 
 typedef struct {
-    char  fecha[20];
-    char  hora[10];
-    int   zona_id;
-    float valores[4]; 
-    float predicciones[4];
-    int   alertas[4];
-    char  recomendacion[300]; 
-} Reporte;
+    char  zonaNombre[50];
+    char  fecha[12];   
+    float pm25;
+    float no2;
+    float so2;
+    float co2;
+    float temperatura;
+    float humedad;
+    float velocidadViento;
+} Medicion;
 
-typedef struct {
-    Zona    zonas[10]; 
-    int     num_zonas;
-    Reporte reportes[100];
-    int     num_reportes;
-    char    archivo_historial[100];
-    char    archivo_reporte[100];
-} SistemaMonitoreo;
+extern Zona     zonas[MAX_ZONAS];
+extern Medicion mediciones[MAX_MEDICIONES];
+extern int      cantidadZonas;
+extern int      cantidadMediciones;
 
-int   leer_linea(char *buffer, int size);
-int   pedir_entero_rango(const char *mensaje, int minimo, int maximo);
-float pedir_flotante_rango(const char *mensaje, float minimo, float maximo);
-void  leer_nombre(const char *mensaje, char *destino, int tam);
+int menu(void);
 
-void inicializar_sistema(SistemaMonitoreo *s);
-void inicializar_datos_base(SistemaMonitoreo *s);
-void cargar_historial(SistemaMonitoreo *s);
-void guardar_historial(SistemaMonitoreo *s);
+void registrarZona(void);
+void listarZonas(void);
+void eliminarZona(void);
 
-void ingresar_medicion(Zona *z);
-void actualizar_historial(Zona *z);
-void agregar_zona(SistemaMonitoreo *s);
-void eliminar_zona(SistemaMonitoreo *s);
+void registrarMedicionActual(void);
+void agregarMedicionHistorica(void);
 
-float calcular_promedio_ponderado(float *historico, int n);
-float aplicar_factor_climatico(float pred_base, float viento_kmh, float humedad_pct, float temp_c);
-int   clasificar_nivel(float valor, float limite_oms);
-void  comparar_con_limites(Zona *z);
-void  actualizar_predicciones(Zona *z);
-void  generar_recomendaciones(Zona *z, char *mensaje, int tam_mensaje);
+void monitorearContaminacion(void);
+void mostrarAlertasRecomendaciones(void);
+void predecirContaminacion(void);
+void calcularPromedioHistorico(void);
+void mostrarReporte(void);
 
-void mostrar_resumen_zonas(SistemaMonitoreo *s);
-void mostrar_datos_zona(Zona *z);
-void exportar_reporte(SistemaMonitoreo *s);
+void guardarArchivos(void);
+void cargarArchivos(void);
+void generarBaseDatosMock(void);
 
-int  validar_float_ok(float v, float minimo, float maximo);
-void validar_zona(Zona *z, int indice);
-void validar_sistema(SistemaMonitoreo *s);
+int   pedirEnteroRango(const char *msg, int a, int b);
+float pedirFlotanteRango(const char *msg, float a, float b);
+void  leerCadena(char *dest, int tam);
+void  limpiarBuffer(void);
 
-void obtener_fecha_hora(char *fecha, int tf, char *hora, int th);
-const char *texto_nivel(int nivel);
+int buscarZonaPorNombre(const char *nombre);
+void mostrarZonasNumeradas(void);
+int seleccionarZona(void);
 
-void mostrar_menu();
-void inicializar_rutas(SistemaMonitoreo *s);
-void opcion_ingresar_medicion(SistemaMonitoreo *s);
-void opcion_ver_niveles(SistemaMonitoreo *s);
-void opcion_prediccion(SistemaMonitoreo *s);
-void opcion_historico_vs_oms(SistemaMonitoreo *s);
-void opcion_recomendaciones(SistemaMonitoreo *s);
-void opcion_exportar_reporte(SistemaMonitoreo *s);
-void opcion_agregar_zona(SistemaMonitoreo *s);
-void opcion_eliminar_zona(SistemaMonitoreo *s);
+float obtenerCampoMedicion(Medicion *m, int campo);
+float promedioUltimos30(const char *zona, int campo);
+float promedioUltimos7(const char *zona, int campo);
+float promedioPonderado30(const char *zona, int campo);
+float prediccionClimatica(float base, float viento, float humedad, float temp);
+Medicion *obtenerMedicionHoy(const char *zona, const char *fechaHoy);
+
+const char *nivelPM25(float v);
+const char *nivelNO2(float v);
+const char *nivelSO2(float v);
+const char *nivelCO2(float v);
+const char *nivelTemp(float v);
+const char *nivelHumedad(float v);
+const char *nivelViento(float v);
+const char *recPM25(float v);
+const char *recNO2(float v);
+const char *recSO2(float v);
+const char *recCO2(float v);
+const char *recTemp(float v);
+const char *recHumedad(float v);
+const char *recViento(float v);
+
+void obtenerFechaHoy(char *buf, int tam);
+
+void imprimirSeparador(int ancho);
+void imprimirLinea(const char *col1, int a1,
+                   const char *col2, int a2,
+                   const char *col3, int a3,
+                   const char *col4, int a4,
+                   const char *col5, int a5);
+
+#endif

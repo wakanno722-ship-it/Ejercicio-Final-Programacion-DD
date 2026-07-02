@@ -1,37 +1,61 @@
-#include <stdio.h>
 #include "funciones.h"
 
-int main() {
-    SistemaMonitoreo sistema;
-    int opcion;
+int main(void) {
+    int opc;
 
-    inicializar_rutas(&sistema);
-    inicializar_sistema(&sistema);
+    cargarArchivos();
+
+    if (cantidadZonas == 0 && cantidadMediciones == 0) {
+        generarBaseDatosMock();
+    }
 
     do {
-        mostrar_menu();
-        opcion = pedir_entero_rango("Seleccione una opcion: ", 1, 9);
-
-        switch (opcion) {
-            case 1: opcion_ingresar_medicion(&sistema);  break;
-            case 2: opcion_ver_niveles(&sistema);        break;
-            case 3: opcion_prediccion(&sistema);         break;
-            case 4: opcion_historico_vs_oms(&sistema);   break;
-            case 5: opcion_recomendaciones(&sistema);    break;
-            case 6: opcion_exportar_reporte(&sistema);   break;
-            case 7: opcion_agregar_zona(&sistema);       break;
-            case 8: opcion_eliminar_zona(&sistema);      break;
-            case 9:
-                printf("\nGuardando historial y saliendo...\n");
-                guardar_historial(&sistema);
-                printf("Hasta luego.\n\n");
-                break;
-            default:
-                printf("Opcion no reconocida.\n");
+        opc = menu();
+        switch (opc) {
+            case 1:
+              registrarZona();      
+              guardarArchivos();
+            break;
+            case 2: 
+             listarZonas();             
+            break;
+            case 3: 
+             eliminarZona();       
+             guardarArchivos();
+            break;
+            case 4:  
+             registrarMedicionActual();    
+             guardarArchivos(); 
+            break;
+            case 5:  
+             agregarMedicionHistorica();
+             guardarArchivos();    
+            break;
+            case 6:  
+             monitorearContaminacion();
+             guardarArchivos();     
+            break;
+            case 7:  
+             mostrarAlertasRecomendaciones(); 
+             guardarArchivos();
+            break;
+            case 8:  
+             predecirContaminacion();     
+             guardarArchivos();  
+            break;
+            case 9:  
+             calcularPromedioHistorico();  
+             guardarArchivos(); 
+            break;
+            case 10: 
+             mostrarReporte();              
+             guardarArchivos();
+            break;
+            case 11:
+                printf("Gracias hasta luego.\n\n");
                 break;
         }
-
-    } while (opcion != 9);
+    } while (opc != 11);
 
     return 0;
 }
